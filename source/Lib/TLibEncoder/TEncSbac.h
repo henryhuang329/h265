@@ -163,7 +163,7 @@ public:
   Void codeChromaQpAdjustment  ( TComDataCU* cu, UInt absPartIdx );
 
   Void codeLastSignificantXY ( UInt uiPosX, UInt uiPosY, Int width, Int height, ComponentID component, UInt uiScanIdx );
-  Void codeCoeffNxN            ( TComTU &rTu, TCoeff* pcCoef, const ComponentID compID );
+  Void codeCoeffNxN            ( TComTU &rTu, TCoeff* pcCoef, const ComponentID compID, TCoeff* trCoeff=NULL );
   Void codeTransformSkipFlags ( TComTU &rTu, ComponentID component );
 
   // -------------------------------------------------------------------------------------------------------------------

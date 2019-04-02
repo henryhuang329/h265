@@ -127,7 +127,7 @@ TComTrQuant::TComTrQuant()
 {
   // allocate temporary buffers
   m_plTempCoeff  = new TCoeff[ MAX_CU_SIZE*MAX_CU_SIZE ];
-
+  m_plTrCoeff = new TCoeff[ MAX_CU_SIZE*MAX_CU_SIZE ];
   // allocate bit estimation class  (for RDOQ)
   m_pcEstBitsSbac = new estBitsSbacStruct;
   initScalingList();
@@ -138,6 +138,8 @@ TComTrQuant::~TComTrQuant()
   // delete temporary buffers
   if ( m_plTempCoeff )
   {
+	delete[] m_plTrCoeff; 
+	m_plTrCoeff = NULL;
     delete [] m_plTempCoeff;
     m_plTempCoeff = NULL;
   }
@@ -1822,7 +1824,7 @@ Void TComTrQuant::xT( const ComponentID compID, Bool useDST, Pel* piBlkResi, UIn
     }
 
   xTrMxN( g_bitDepth[toChannelType(compID)], block, coeff, iWidth, iHeight, useDST, g_maxTrDynamicRange[toChannelType(compID)] );
-
+  memcpy(m_plTrCoeff, coeff, (iWidth * iHeight * sizeof(TCoeff)));
   memcpy(psCoeff, coeff, (iWidth * iHeight * sizeof(TCoeff)));
 }
 

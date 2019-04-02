@@ -959,7 +959,7 @@ TEncSearch::xEncCoeffQT(TComTU &rTu,
       m_pcEntropyCoder->encodeCrossComponentPrediction( rTu, component );
     }
 
-    m_pcEntropyCoder->encodeCoeffNxN( rTu, pcCoeff+uiCoeffOffset, component );
+    m_pcEntropyCoder->encodeCoeffNxN(rTu, pcCoeff + uiCoeffOffset, component, m_pcTrQuant->getTrCoeff());
   }
 }
 
@@ -5138,7 +5138,7 @@ Void TEncSearch::xEstimateResidualQT( TComYuv    *pcResi,
                   m_pcEntropyCoder->encodeCrossComponentPrediction( TUIterator, compID );
                 }
 
-                m_pcEntropyCoder->encodeCoeffNxN( TUIterator, currentCoefficients, compID );
+                m_pcEntropyCoder->encodeCoeffNxN(TUIterator, currentCoefficients, compID, m_pcTrQuant->getTrCoeff());
                 currCompBits = m_pcEntropyCoder->getNumberOfWrittenBits();
 
                 pcResiCurrComp = m_pcQTTempTComYuv[uiQTTempAccessLayer].getAddrPix( compID, tuCompRect.x0, tuCompRect.y0 );
@@ -5305,7 +5305,7 @@ Void TEncSearch::xEstimateResidualQT( TComYuv    *pcResi,
           m_pcEntropyCoder->encodeCrossComponentPrediction( rTu, compID );
         }
 
-        m_pcEntropyCoder->encodeCoeffNxN( rTu, pcCoeffCurr[compID], compID );
+        m_pcEntropyCoder->encodeCoeffNxN(rTu, pcCoeffCurr[compID], compID, m_pcTrQuant->getTrCoeff());
         for (UInt subTUIndex = 0; subTUIndex < 2; subTUIndex++) uiSingleDist += uiSingleDistComp[compID][subTUIndex];
       }
     }
@@ -5549,7 +5549,7 @@ Void TEncSearch::xEncodeResidualQT( const ComponentID compID, TComTU &rTu )
         {
           const UInt uiQTTempAccessLayer = pcCU->getSlice()->getSPS()->getQuadtreeTULog2MaxSize() - uiLog2TrSize;
           TCoeff *pcCoeffCurr = m_ppcQTTempCoeff[compID][uiQTTempAccessLayer] + rTu.getCoefficientOffset(compID);
-          m_pcEntropyCoder->encodeCoeffNxN( rTu, pcCoeffCurr, compID );
+          m_pcEntropyCoder->encodeCoeffNxN(rTu, pcCoeffCurr, compID, m_pcTrQuant->getTrCoeff());
         }
       }
     }

@@ -193,6 +193,7 @@ public:
   Int     getQpDelta(Int qp) { return m_qpDelta[qp]; }
   Int*    getSliceNSamples(){ return m_sliceNsamples ;}
   Double* getSliceSumC()    { return m_sliceSumC; }
+  TCoeff* getTrCoeff()      { return m_plTrCoeff; }
 #endif
   Void transformSkipQuantOneSample(TComTU &rTu, const ComponentID compID, const Pel resiDiff, TCoeff* pcCoeff, const UInt uiPos, const QpParam &cQP, const Bool bUseHalfRoundingPoint);
   Void invTrSkipDeQuantOneSample(TComTU &rTu, ComponentID compID, TCoeff pcCoeff, Pel &reconSample, const QpParam &cQP, UInt uiPos );
@@ -204,6 +205,7 @@ protected:
   Double  m_sliceSumC[LEVEL_RANGE+1] ;
 #endif
   TCoeff* m_plTempCoeff;
+  TCoeff* m_plTrCoeff;  // to store transform coeff.
 
 //  QpParam  m_cQP; - removed - placed on the stack.
 #if RDOQ_CHROMA_LAMBDA
