@@ -122,7 +122,8 @@ public:
                            TCoeff        *& rpcArlCoeff,
 #endif
                            TCoeff         & uiAbsSum,
-                     const QpParam        & cQP
+                     const QpParam        & cQP,
+                           Distortion     & estDist
                     );
 
 
@@ -247,7 +248,8 @@ private:
 #endif
                      TCoeff       &uiAbsSum,
                const ComponentID   compID,
-               const QpParam      &cQP );
+               const QpParam      &cQP,
+                     Distortion   &estDist );
 
   // RDOQ functions
 

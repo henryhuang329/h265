@@ -43,7 +43,7 @@
 #include "TLibCommon/Debug.h"
 #include <math.h>
 #include <limits>
-
+#include <fstream>
 
 //! \ingroup TLibEncoder
 //! \{
@@ -1075,6 +1075,7 @@ UInt TEncSearch::xGetIntraBitsQTChroma(TComTU &rTu,
   return uiBits;
 }
 
+// ofstream file ("estDist.txt", ios::out);
 Void TEncSearch::xIntraCodingTUBlock(       TComYuv*    pcOrgYuv,
                                             TComYuv*    pcPredYuv,
                                             TComYuv*    pcResiYuv,
@@ -1229,6 +1230,7 @@ Void TEncSearch::xIntraCodingTUBlock(       TComYuv*    pcOrgYuv,
 
   //--- transform and quantization ---
   TCoeff uiAbsSum = 0;
+  Distortion estDist;
   if (bIsLuma)
   {
     pcCU       ->setTrIdxSubParts ( uiTrDepth, uiAbsPartIdx, uiFullDepth );
@@ -1244,7 +1246,7 @@ Void TEncSearch::xIntraCodingTUBlock(       TComYuv*    pcOrgYuv,
 #if ADAPTIVE_QP_SELECTION
     pcArlCoeff,
 #endif
-    uiAbsSum, cQP
+    uiAbsSum, cQP, estDist
     );
 
   //--- inverse transform ---
@@ -1357,7 +1359,19 @@ Void TEncSearch::xIntraCodingTUBlock(       TComYuv*    pcOrgYuv,
   }
 
   //===== update distortion =====
-  ruiDist += m_pcRdCost->getDistPart( g_bitDepth[chType], piReco, uiStride, piOrg, uiStride, uiWidth, uiHeight, compID );
+  Distortion dist = m_pcRdCost->getDistPart( g_bitDepth[chType], piReco, uiStride, piOrg, uiStride, uiWidth, uiHeight, compID );
+
+  // add the Chroma Weight.
+  if ( compID!=COMPONENT_Y )
+  {
+    estDist = (Distortion) (estDist*m_pcRdCost->getChromaWeight());
+  }
+
+  ruiDist += estDist;
+  // if ( uiWidth==16 && uiHeight==16 )
+  // {
+  //   file<<dist<<"\t"<<estDist<<"\n";
+  // }
 }
 
 
@@ -4834,12 +4848,13 @@ Void TEncSearch::encodeResAndCalcRdInterCU( TComDataCU* pcCU, TComYuv* pcYuvOrg,
 
   // update with clipped distortion and cost (qp estimation loop uses unclipped values)
 
-  uiDistortionBest = 0;
-  for(UInt ch=0; ch<rpcYuvRec->getNumberValidComponents(); ch++)
-  {
-    const ComponentID compID=ComponentID(ch);
-    uiDistortionBest += m_pcRdCost->getDistPart( g_bitDepth[toChannelType(compID)], rpcYuvRec->getAddr(compID ), rpcYuvRec->getStride(compID ), pcYuvOrg->getAddr(compID ), pcYuvOrg->getStride(compID), uiWidth >> pcYuvOrg->getComponentScaleX(compID), uiHeight >> pcYuvOrg->getComponentScaleY(compID), compID);
-  }
+  // Comment The Real Distortion Cal. Using the estDist As the BestDist.
+  // uiDistortionBest = 0;
+  // for(UInt ch=0; ch<rpcYuvRec->getNumberValidComponents(); ch++)
+  // {
+  //   const ComponentID compID=ComponentID(ch);
+  //   uiDistortionBest += m_pcRdCost->getDistPart( g_bitDepth[toChannelType(compID)], rpcYuvRec->getAddr(compID ), rpcYuvRec->getStride(compID ), pcYuvOrg->getAddr(compID ), pcYuvOrg->getStride(compID), uiWidth >> pcYuvOrg->getComponentScaleX(compID), uiHeight >> pcYuvOrg->getComponentScaleY(compID), compID);
+  // }
   dCostBest = m_pcRdCost->calcRdCost( uiBitsBest, uiDistortionBest );
 
   pcCU->getTotalBits()       = uiBitsBest;
@@ -5037,6 +5052,7 @@ Void TEncSearch::xEstimateResidualQT( TComYuv    *pcResi,
               UInt       nonCoeffBits = 0;
               Distortion nonCoeffDist = 0;
               Double     nonCoeffCost = 0;
+              Distortion estDist;
 
               if(!isOneMode && !isFirstMode)
               {
@@ -5068,7 +5084,7 @@ Void TEncSearch::xEstimateResidualQT( TComYuv    *pcResi,
 #if ADAPTIVE_QP_SELECTION
                                           currentARLCoefficients,
 #endif
-                                          currAbsSum, cQP);
+                                          currAbsSum, cQP, estDist);
               }
               else
               {
@@ -5076,7 +5092,7 @@ Void TEncSearch::xEstimateResidualQT( TComYuv    *pcResi,
 #if ADAPTIVE_QP_SELECTION
                                           currentARLCoefficients,
 #endif
-                                          currAbsSum, cQP);
+                                          currAbsSum, cQP, estDist);  // estDist only replace the distortion when is non-zero block.
               }
 
               if(isFirstMode || (currAbsSum == 0))
@@ -5165,6 +5181,15 @@ Void TEncSearch::xEstimateResidualQT( TComYuv    *pcResi,
                                                         pcResi->getAddrPix( compID, tuCompRect.x0, tuCompRect.y0 ),
                                                         pcResi->getStride(compID),
                                                         tuCompRect.width, tuCompRect.height, compID);
+                
+                // assign the estDist as currCompDist.
+#if 1
+                if ( compID!=COMPONENT_Y )
+                {
+                  estDist = (Distortion) (estDist*m_pcRdCost->getChromaWeight());
+                }
+                currCompDist = estDist;
+#endif
 
                 currCompCost = m_pcRdCost->calcRdCost(currCompBits, currCompDist);
                   

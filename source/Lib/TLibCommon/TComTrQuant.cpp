@@ -1094,7 +1094,8 @@ Void TComTrQuant::xQuant(       TComTU       &rTu,
 #endif
                                 TCoeff       &uiAbsSum,
                           const ComponentID   compID,
-                          const QpParam      &cQP )
+                          const QpParam      &cQP,
+                                Distortion   &estDist )
 {
   const TComRectangle &rect = rTu.getRect(compID);
   const UInt uiWidth        = rect.width;
@@ -1102,12 +1103,15 @@ Void TComTrQuant::xQuant(       TComTU       &rTu,
   TComDataCU* pcCU          = rTu.getCU();
   const UInt uiAbsPartIdx   = rTu.GetAbsPartIdxTU();
 
+  Distortion dEstDistortion = 0;
+
   TCoeff* piCoef    = pSrc;
   TCoeff* piQCoef   = pDes;
 #if ADAPTIVE_QP_SELECTION
   TCoeff* piArlCCoef = pArlDes;
 #endif
-
+  Int64   estDistortion=0;
+  Int64   estDistortion1=0;
   const Bool useTransformSkip = pcCU->getTransformSkip(uiAbsPartIdx, compID);
 
   Bool useRDOQ = useTransformSkip ? m_useRDOQTS : m_useRDOQ;
@@ -1185,11 +1189,25 @@ Void TComTrQuant::xQuant(       TComTU       &rTu,
       const TCoeff quantisedMagnitude = TCoeff((tmpLevel + iAdd ) >> iQBits);
       deltaU[uiBlockPos] = (TCoeff)((tmpLevel - (quantisedMagnitude<<iQBits) )>> qBits8);
 
+      // From the Theory.
+      Int64 diff0 = abs(tmpLevel - (quantisedMagnitude<<iQBits) );
+      // From the Paper.
+      Int64 tmp = TCoeff(tmpLevel + iAdd );
+      Int64 lowBits = tmp & ((1<<iQBits)-1);
+      Int64 diff = abs(iAdd - lowBits);
+      estDistortion += diff*diff;
+      estDistortion1+= diff0*diff0;
+
+      assert (estDistortion==estDistortion1);
+      
       uiAbsSum += quantisedMagnitude;
       const TCoeff quantisedCoefficient = quantisedMagnitude * iSign;
 
       piQCoef[uiBlockPos] = Clip3<TCoeff>( entropyCodingMinimum, entropyCodingMaximum, quantisedCoefficient );
     } // for n
+    
+    dEstDistortion = (Distortion)(estDistortion/(defaultQuantisationCoefficient*defaultQuantisationCoefficient))>>(2*iTransformShift);
+    estDist = dEstDistortion;
 
     if( pcCU->getSlice()->getPPS()->getSignHideFlag() )
     {
@@ -1345,7 +1363,8 @@ Void TComTrQuant::transformNxN(       TComTU        & rTu,
                                       TCoeff       *& rpcArlCoeff,
 #endif
                                       TCoeff        & uiAbsSum,
-                                const QpParam       & cQP
+                                const QpParam       & cQP,
+                                      Distortion    & estDist
                               )
 {
   const TComRectangle &rect = rTu.getRect(compID);
@@ -1408,7 +1427,7 @@ Void TComTrQuant::transformNxN(       TComTU        & rTu,
 #if ADAPTIVE_QP_SELECTION
               rpcArlCoeff,
 #endif
-              uiAbsSum, compID, cQP );
+              uiAbsSum, compID, cQP, estDist );
 
 #ifdef DEBUG_TRANSFORM_AND_QUANTISE
       std::cout << g_debugCounter << ": " << uiWidth << "x" << uiHeight << " channel " << compID << " TU at output of quantiser\n";
